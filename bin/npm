@@ -1,38 +1,205 @@
-#!/bin/bash
-(set -o igncr) 2>/dev/null && set -o igncr; # cygwin encoding fix
+#!/usr/bin/env node
+/**
+#npm install	yarn install
+#npm install --flat yarn install --flat
+#(N/A)	yarn install --har
+#(N/A)	yarn install --no-lockfile
+#(N/A)	yarn install --pure-lockfile
+#npm install [package]	(N/A)
+#npm install --save [package]	yarn add [package]
+#npm install --save-dev [package]	yarn add [package] --dev
+#(N/A)	yarn add [package] --peer
+#npm install --save-optional [package]	yarn add [package] --optional
+#npm install --save-exact [package]	yarn add [package] --exact
+#(N/A)	yarn add [package] --tilde
+#npm install --global [package]	yarn global add [package]
+#npm uninstall [package]	(N/A)
+#npm uninstall --save [package]	yarn remove [package]
+#npm uninstall --save-dev [package]	yarn remove [package]
+#npm uninstall --save-optional [package]	yarn remove [package]
+#rm -rf node_modules && npm install	yarn upgrade
+**/
 
+var debug = require('debug')
+var program = require('commander');
+var Q = require('q');
+var fs = require('fs');
+var path = require('path');
+var log = function(promise) {
+  return promise
+    .then(function() {
+      process.exit(0);
+    })
+    .catch(function(error) {
+      console.log();
+      console.error(error.stack || error.message || error);
+      console.log();
+
+      process.exit(1);
+    });
+};
+
+var spawn = function(cmd, args, options) {
+  options = options || {};
+  // program.rawArgs.slice(2)
+  options.stdio = 'inherit';
+
+  if (!options.cwd) {
+    options.cwd = process.cwd();
+  }
+
+  if (!fs.existsSync('/usr/local/bin/yarn')) {
+    var msg = 'Could not find local Yarn binary (/usr/local/bin/yarn)';
+    return Q.reject(new Error(msg));
+  }
+
+  var child = require('cross-spawn')(cmd, args, options);
+  var deferred = Q.defer();
+
+  child.on('exit', function(status) {
+    if(status) {
+      deferred.reject(new Error('Command `' + cmd +
+        '` did not complete successfully'));
+    } else {
+      deferred.resolve(child);
+    }
+  });
+
+  return deferred.promise;
+};
+
+
+var runBinary = function(args, options, types) {
+  options = options || {};
+
+
+      if (!fs.existsSync('/usr/local/bin/yarn')) {
+        var msg = 'Could not find local Yarn binary (/usr/local/bin/yarn)';
+        return Q.reject(new Error(msg));
+      }
+
+      if (!options.cwd) {
+        options.cwd = root;
+      }
+
+      return utils.spawn('/usr/local/bin/yarn', args, options);
+
+
+};
+
+help = function() {
+  return runBinary(['--help']);
+};
+
+
+program
+  .version('0.1.1')
+//   .option("-i, --install", "Install Packages")
+
+program
+  .command('uninstall').alias('r').alias('unisntall').alias('remove')
+  .description('runs yarn add')
+  .option("-U, --uninstall", "show versions")
+  .option("-v, --version", "show version")
+  .option("-G, --global", "Use Global Node Folder")
+  .option("-S, --save", "save to package.json depdencys")
+  .option("-D, --save-dev", "save to package.json devDependencys")
+  .action(function(env,opts){
+    var yarnArgs= []
+    var pkgs = program.args;
+    if (opts.global) {
+      console.log('  global: remove');
+      yarnArgs.push('global')
+    }
+    // install
+    yarnArgs.push('remove')
+    pkgs.forEach(function(pkg){
+      if (typeof pkg !== 'string') {
+        return
+      }
+      console.log('  remove : %s', pkg);
+      yarnArgs.push(pkg)
+    });
+    yarnArgs.push('--ignore-engines')
+    return spawn('yarn',yarnArgs)
+    console.log(yarnArgs)
+    //console.log(env,JSON.stringify(program.Option))
+  })
+
+
+var install = function(env,opts){
+  var yarnArgs= []
+  var pkgs = program.args;
+
+  // console.log('  global: install');
+  if (opts.global) {
+    console.log('  global: install');
+    // yarnArgs.push('yarn')
+    yarnArgs.push('global')
+  } else {
+    // yarnArgs.push('yarn')
+  }
+  // install
+  yarnArgs.push('add')
+
+  pkgs.forEach(function(pkg){
+    if (pkg === 'install') {
+      return
+    }else if (typeof pkg !== 'string') {
+      if (program.rawArgs.pop() ==='install') {
+        console.log('install only')
+        yarnArgs.pop()
+        yarnArgs.push('install')
+      }
+      return
+    }
+    console.log('  install : %s', pkg);
+    yarnArgs.push(pkg)
+  });
+  yarnArgs.push('--ignore-engines')
+
+  spawn('yarn',yarnArgs)
+}
+
+
+//, {isDefault: true}
+program
+  .command('install').alias('i').alias('isntall')
+  .description('runs yarn add')
+  .option("-i", "sshow version")
+  .option("-v, --version", "show version")
+  .option("-G, --global", "Use Global Node Folder")
+  .option("-S, --save", "save to package.json depdencys")
+  .option("-D, --save-dev", "save to package.json devDependencys")
+  .action(install)
+
+program
+  .command('*')
+	.action(install)
+/*
+  {
+		//program.help()
+    install()
+		//process.exit(0)
+	})
+*/
+program.parse(process.argv);
+
+/*
+program
+  .command('*')
+  .action(function(env){
+    console.log('ANY')
+  });
+
+if (!program.args.length) {
+//  program.help();
+}
+*/
+/**
 basedir=`dirname "$0"`
 
-case `uname` in
-    *CYGWIN*) basedir=`cygpath -w "$basedir"`;;
-esac
-
-NODE_EXE="$basedir/node.exe"
-if ! [ -x "$NODE_EXE" ]; then
-  NODE_EXE=node
-fi
-
-NPM_CLI_JS="$basedir/node_modules/npm/bin/npm-cli.js"
-
-case `uname` in
-  *MINGW*)
-    NPM_PREFIX=`"$NODE_EXE" "$NPM_CLI_JS" prefix -g`
-    NPM_PREFIX_NPM_CLI_JS="$NPM_PREFIX/node_modules/npm/bin/npm-cli.js"
-    if [ -f "$NPM_PREFIX_NPM_CLI_JS" ]; then
-      NPM_CLI_JS="$NPM_PREFIX_NPM_CLI_JS"
-    fi
-    ;;
-  *CYGWIN*)
-    NPM_PREFIX=`"$NODE_EXE" "$NPM_CLI_JS" prefix -g`
-    NPM_PREFIX_NPM_CLI_JS="$NPM_PREFIX/node_modules/npm/bin/npm-cli.js"
-    if [ -f "$NPM_PREFIX_NPM_CLI_JS" ]; then
-      NPM_CLI_JS="$NPM_PREFIX_NPM_CLI_JS"
-    fi
-    ;;
-esac
-
-#set -- "${@:1}" "new" "${@:2}"
-
+set -- "${@:1}" "new" "${@:2}"
 STR=$@
 
 if [[ $STR == *"-v"* ]]
@@ -40,9 +207,6 @@ then
 	yarn -V
 	exit 0
 fi
-
-
-
 
 if [[ $STR == *"--loglevel error"* ]]
 then
@@ -145,3 +309,4 @@ fi
 
 yarn $CMDSTR $STR $CMDENGINS
 # "$NODE_EXE" "$NPM_CLI_JS" "$@"
+**/
