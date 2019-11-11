@@ -17,7 +17,7 @@
     "yarn": "^0.18.0"
   },
   "dependencies": {
-    "commander": "^2.9.0",
+    "commander": "^4.0.0",
     "dssrv": "^1.5.0",
     "remove": "^0.1.5"
   }
