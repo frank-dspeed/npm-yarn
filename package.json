@@ -14,7 +14,7 @@
     "npm": "bin/npm"
   },
   "devDependencies": {
-    "yarn": "^0.18.0"
+    "yarn": "1.22.17"
   },
   "dependencies": {
     "commander": "^2.9.0",
